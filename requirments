@@ -1,0 +1,26 @@
+Ec2 instance with t2. large
+Jenkins
+Install docker
+docker permissions (chmod 777 ///var/run/docker.sock)
+vim .bashrc  (export PATH=$PATH:/usr/local/bin/)
+Install trivy 
+    wget https://github.com/aquasecurity/trivy/releases/download/v0.18.3/trivy_0.18.3_Linux-64bit.tar.gz
+    tar zxvf trivy_0.18.3_Linux-64bit.tar.gz
+    sudo mv trivy /usr/local/bin/
+Install sonarqube
+     docker run -d --name sonar -p 9000:9000 sonarqube:lts-community
+Plugins
+  Docker Pipeline
+  Pipeline: Stage View
+  Eclipse Temurin installer
+  SonarQube Scanner
+  OWASP Dependency-Check
+  Slack Notification
+  NodeJS
+Restart jenkins
+Create a slack workspace
+Integrate slack with jenkins
+Tools configuration in jenkins
+JDK,sonarqube, node-js,  dependency check tools integration.
+Go to system integrate sonarqube
+Write pipelin
