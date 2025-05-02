@@ -1,0 +1,85 @@
+pipeline {
+    agent any
+    tools {
+        maven 'mymaven'
+        jdk 'jdk17'
+        nodejs 'node16'
+    }
+    environment {
+        SONARQUBE_HOME=tool 'mysonar'
+    }
+    stages {
+        stage ('Clean Ws') {
+            steps {
+                cleanWs()
+            }
+        }
+        stage ("code") {
+            steps {
+                git "https://github.com/Chaitu078/dockerwebapp.git"
+            }
+        }
+        stage ('CQA') {
+            steps {
+                withSonarQubeEnv('mysonar') {
+                    sh '''
+                        mvn clean verify sonar:sonar \
+                       -Dsonar.projectKey=Docker \
+                       -Dsonar.host.url=http://54.175.214.198:9000 \
+                       -Dsonar.login=sqa_6a76a53089cf42d69a62aef248ed993526693243
+                    '''
+                 }
+            }
+        }
+        stage ('Build') {
+            steps {
+                sh 'mvn clean package'
+                sh 'cp -r target Docker-app'
+            }
+        }
+        stage ('OWASP') {
+            steps {
+                dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage ('Docker Build') {
+            steps {
+                sh 'docker build -t chaitanya078/ourproject:app Docker-app'
+                sh 'docker build -t chaitanya078/ourproject:db Docker-db'
+            }
+        }
+        stage ('Trivy') {
+            steps {
+                sh 'trivy fs . > tivyfs.txt'
+            }
+        }
+        stage ('trivy scan') {
+            steps {
+                sh 'trivy image chaitanya078/ourproject:app'
+                sh 'trivy image chaitanya078/ourproject:db'
+            }
+        }
+        stage ("dockerhub") {
+            steps {
+                script {
+                    withDockerRegistry(credentialsId: 'dockerhub') {
+                        sh 'docker push chaitanya078/ourproject:app'
+                        sh 'docker push chaitanya078/ourproject:db'
+                    }
+                }
+            }
+        }
+        stage ("deploy") {
+            steps {
+                sh 'docker-compose up -d'
+            }
+        }
+    }
+    post {
+         always {
+              echo 'Slack Notifications'
+              slackSend (channel: 'docker-project', message: "*${currentBuild.currentResult}:* Job ${env.JOB_NAME} \n build ${env.BUILD_NUMBER} \n More info at: ${env.BUILD_URL}")
+        }
+    }
+}
